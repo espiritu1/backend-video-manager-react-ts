@@ -14,6 +14,17 @@ API REST desarrollada con arquitectura limpia (Clean Architecture) que permite g
 - ✅ Validación de datos con Zod
 - ✅ Manejo centralizado de errores
 - ✅ Base de datos PostgreSQL con Prisma ORM
+- ✅ Documentación automática con OpenAPI/Swagger
+
+### 📚 Documentación Swagger
+
+Una vez iniciado el servidor, puedes ver la documentación interactiva de la API en:
+
+**Swagger UI**: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+
+También puedes acceder a la especificación en formato JSON:
+
+- **Spec JSON**: [http://localhost:3000/openapi.json](http://localhost:3000/openapi.json)
 
 ## 🏗️ Estructura del Proyecto
 
