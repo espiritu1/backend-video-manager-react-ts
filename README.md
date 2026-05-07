@@ -49,15 +49,15 @@ api-video/
 
 ## 🛠️ Tecnologías y Versiones
 
-| Tecnología | Versión | Propósito |
-|------------|---------|-----------|
-| Bun | 1.2.22 | Runtime de JavaScript |
-| Express | 5.2.1 | Framework web |
-| TypeScript | 6.0.3 | Lenguaje tipado |
-| Prisma | 7.8.0 | ORM para base de datos |
-| PostgreSQL | - | Base de datos |
-| Zod | 4.4.3 | Validación de datos |
-| dotenv | 17.4.2 | Variables de entorno |
+| Tecnología  | Versión | Propósito               |
+|------------ |---------|-------------------------|
+| Bun         | 1.2.22  | Runtime de JavaScript   |
+| Express     | 5.2.1   | Framework web           |
+| TypeScript  | 6.0.3   | Lenguaje tipado         |
+| Prisma      | 7.8.0   | ORM para base de datos  |
+| PostgreSQL  | -       | Base de datos           |
+| Zod         | 4.4.3   | Validación de datos     |
+| dotenv      | 17.4.2  | Variables de entorno    |
 
 ## 🚀 Instalación
 
@@ -123,17 +123,17 @@ curl http://localhost:3000/health
 
 ### Health Check
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
+| Método | Endpoint | Descripción                            |
+|--------|----------|----------------------------------------|
 | GET | `/health` | Verificar que el servidor está corriendo |
 
 ### Categorías
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/api/categories` | Listar todas las categorías |
-| POST | `/api/categories` | Crear una categoría |
-| DELETE | `/api/categories/:id` | Eliminar una categoría |
+| Método  | Endpoint              | Descripción                 |
+|-------- |-----------------------|-----------------------------|
+| GET     | `/api/categories`     | Listar todas las categorías |
+| POST    | `/api/categories`     | Crear una categoría         |
+| DELETE  | `/api/categories/:id` | Eliminar una categoría       |
 
 #### Ejemplo crear categoría principal:
 ```json
@@ -154,12 +154,12 @@ POST /api/categories
 
 ### Videos
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/api/videos` | Listar todos los videos |
-| GET | `/api/videos?categoryId=1` | Listar videos por categoría |
-| POST | `/api/videos` | Crear un video |
-| DELETE | `/api/videos/:id` | Eliminar un video |
+| Método | Endpoint                   | Descripción                 |
+|--------|----------------------------|-----------------------------|
+| GET    | `/api/videos`              | Listar todos los videos     |
+| GET    | `/api/videos?categoryId=1` | Listar videos por categoría |
+| POST   | `/api/videos`              | Crear un video              |
+| DELETE | `/api/videos/:id`          | Eliminar un video           |
 
 #### Ejemplo crear video:
 ```json
@@ -175,12 +175,12 @@ POST /api/videos
 
 ## 📦 Scripts Disponibles
 
-| Script | Descripción |
-|--------|-------------|
-| `bun run dev` | Iniciar el servidor en modo desarrollo |
-| `bun run build` | Compilar el proyecto |
-| `bunx prisma generate` | Generar el cliente de Prisma |
-| `bunx prisma studio` | Abrir Prisma Studio (UI de la DB) |
+| Script                 |             Descripción                |
+|------------------------|----------------------------------------|
+| `bun run dev`          | Iniciar el servidor en modo desarrollo |
+| `bun run build`        | Compilar el proyecto                   |
+| `bunx prisma generate` | Generar el cliente de Prisma           |
+| `bunx prisma studio`   | Abrir Prisma Studio (UI de la DB)      |
 
 ## 🔧 Desarrollo
 
