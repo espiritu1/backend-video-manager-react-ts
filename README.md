@@ -134,9 +134,9 @@ curl http://localhost:3000/health
 
 ### Health Check
 
-| Método | Endpoint | Descripción                            |
-|--------|----------|----------------------------------------|
-| GET | `/health` | Verificar que el servidor está corriendo |
+| Método | Endpoint | Descripción                               |
+|--------|----------|----------------------------------------   |
+| GET    | `/health`| Verificar que el servidor está corriendo  |
 
 ### Categorías
 
@@ -144,7 +144,7 @@ curl http://localhost:3000/health
 |-------- |-----------------------|-----------------------------|
 | GET     | `/api/categories`     | Listar todas las categorías |
 | POST    | `/api/categories`     | Crear una categoría         |
-| DELETE  | `/api/categories/:id` | Eliminar una categoría       |
+| DELETE  | `/api/categories/:id` | Eliminar una categoría      |
 
 #### Ejemplo crear categoría principal:
 ```json

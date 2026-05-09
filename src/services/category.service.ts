@@ -4,29 +4,47 @@ import { createError } from "../middlewares/error.middleware";
 
 export const categoryService = {
   async create(data: CreateCategoryDto) {
+    const normalizedName = data.name.trim().toLowerCase();
+
+    if (normalizedName.length === 0) {
+      throw createError("El nombre no puede estar vacío", 400);
+    }
+
     if (data.parentId) {
       const parent = await prisma.category.findUnique({
         where: { id: data.parentId },
       });
       if (!parent) {
-        throw createError("Parent category not found", 404);
+        throw createError("Categoría padre no encontrada", 404);
       }
     }
 
+    const parentIdFilter = data.parentId ?? null;
+
     const existing = await prisma.category.findFirst({
       where: {
-        name: data.name,
-        ...(data.parentId ? { parentId: data.parentId } : { parentId: null }),
+        name: {
+          equals: normalizedName,
+          mode: "insensitive",
+        },
+        parentId: parentIdFilter,
       },
     });
 
     if (existing) {
-      throw createError("Category with this name already exists in parent", 409);
+      if (data.parentId) {
+        const parent = await prisma.category.findUnique({
+          where: { id: data.parentId },
+        });
+        throw createError(`La subcategoría '${normalizedName}' ya existe en la categoría '${parent?.name}'`, 409);
+      } else {
+        throw createError(`La categoría '${normalizedName}' ya existe`, 409);
+      }
     }
 
     return prisma.category.create({
       data: {
-        name: data.name,
+        name: normalizedName,
         parentId: data.parentId,
       },
     });

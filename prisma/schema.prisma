@@ -24,17 +24,19 @@ model Category {
 }
 
 model Video {
-  id            Int      @id @default(autoincrement())
-  title         String
-  description   String?
+  id               Int      @id @default(autoincrement())
+  title            String
+  description      String
 
-  videoPath     String
-  thumbnailPath String?
+  videoPath        String
+  thumbnailPath    String
 
-  categoryId    Int
-  category      Category @relation(fields: [categoryId], references: [id])
+  categoryId       Int      // subcategoría
+  parentCategoryId Int?     // categoría principal (opcional)
 
-  createdAt     DateTime @default(now())
+  category         Category @relation(fields: [categoryId], references: [id])
+
+  createdAt        DateTime @default(now())
 
   @@map("videos")
 }

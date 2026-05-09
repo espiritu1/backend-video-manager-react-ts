@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Video Manager API - Portafolio Card</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        .card {
+            width: 500px;
+            height: 280px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 10px;
+            padding: 15px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .header {
+            background: #0f3460;
+            margin: -15px -15px 15px -15px;
+            padding: 10px 15px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .title {
+            color: #e94560;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .subtitle {
+            color: #fff;
+            font-size: 11px;
+        }
+        .section-title {
+            color: #e94560;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            margin-top: 10px;
+        }
+        .tech {
+            color: #a0a0a0;
+            font-size: 10px;
+            line-height: 14px;
+        }
+        .endpoints {
+            color: #a0a0a0;
+            font-size: 9px;
+            line-height: 13px;
+        }
+        .description {
+            color: #a0a0a0;
+            font-size: 10px;
+            line-height: 14px;
+        }
+        .features {
+            color: #a0a0a0;
+            font-size: 10px;
+            line-height: 14px;
+        }
+        .left-col {
+            float: left;
+            width: 48%;
+        }
+        .right-col {
+            float: right;
+            width: 48%;
+        }
+        .clear {
+            clear: both;
+        }
+        .footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #0f3460;
+            padding: 8px 15px;
+            border-radius: 0 0 10px 10px;
+            font-size: 10px;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header">
+            <div>
+                <div class="title">Video Manager API</div>
+                <div class="subtitle">REST API with Clean Architecture</div>
+            </div>
+        </div>
+        
+        <div class="left-col">
+            <div class="section-title">TECNOLOGÍAS</div>
+            <div class="tech">
+                Bun 1.2.22 • Express<br>
+                TypeScript • Prisma 7.8.0<br>
+                PostgreSQL • Zod<br>
+                OpenAPI 3.0.3 • Swagger
+            </div>
+            
+            <div class="section-title">ENDPOINTS</div>
+            <div class="endpoints">
+                GET /api/categories<br>
+                POST /api/categories<br>
+                DELETE /api/categories/:id<br>
+                GET /api/videos<br>
+                POST /api/videos<br>
+                DELETE /api/videos/:id
+            </div>
+        </div>
+        
+        <div class="right-col">
+            <div class="section-title">DESCRIPCIÓN</div>
+            <div class="description">
+                API REST para gestión de videos y categorías con subcategorías recursivas. Validaciones Zod, manejo de errores y OpenAPI.
+            </div>
+            
+            <div class="section-title">CARACTERÍSTICAS</div>
+            <div class="features">
+                ✓ CRUD completo<br>
+                ✓ Subcategorías recursivas<br>
+                ✓ Validaciones Zod<br>
+                ✓ Swagger UI (/api-docs)
+            </div>
+        </div>
+        
+        <div class="clear"></div>
+        
+        <div class="footer">
+            GitHub: espiritu1/backend-video-manager-react-ts
+        </div>
+    </div>
+</body>
+</html>

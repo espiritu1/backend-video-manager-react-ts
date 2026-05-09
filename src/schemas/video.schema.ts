@@ -1,11 +1,12 @@
 import { z } from "zod";
 
 export const createVideoSchema = z.object({
-  title: z.string().min(1, "Title is required").max(255, "Title too long"),
-  description: z.string().min(1, "Description is required").max(1000, "Description too long"),
-  videoPath: z.string().min(1, "Video path is required"),
-  thumbnailPath: z.string().min(1, "Thumbnail path is required"),
-  categoryId: z.number().int().positive("Category ID must be a positive integer"),
+  titulo: z.string().min(1, "El título es requerido").max(255, "Título muy largo"),
+  descripcion: z.string().min(1, "La descripción es requerida").max(1000, "Descripción muy larga"),
+  categoria: z.string().min(1, "La categoría es requerida"),
+  subCategoria: z.string().optional(),
+  video: z.any(),
+  miniatura: z.any(),
 });
 
 export type CreateVideoDto = z.infer<typeof createVideoSchema>;
