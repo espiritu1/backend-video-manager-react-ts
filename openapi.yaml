@@ -3,12 +3,14 @@ info:
   title: Video Manager API
   description: |
     API REST para gestión de videos y categorías con soporte para subcategorías recursivas.
-    
+
     ## Características
-    - CRUD de categorías (crear, listar, borrar)
-    - CRUD de videos (crear, listar, borrar)
-    - Soporte para subcategorías recursivas
-    - Validación de datos con Zod
+    - CRUD de categorías y subcategorías
+    - CRUD de videos con upload de archivos
+    - Validación de categorías sin duplicados (case-insensitive)
+    - Los nombres de categorías se normalizan a minúsculas
+    - Los videos se guardan en assets/backend/videos
+    - Las miniaturas se guardan en assets/backend/imagenes
   version: 1.0.0
   contact:
     name: Soporte
@@ -24,7 +26,7 @@ tags:
   - name: Categories
     description: Gestión de categorías y subcategorías
   - name: Videos
-    description: Gestión de videos
+    description: Gestión de videos con upload de archivos
 
 paths:
   /health:
@@ -51,7 +53,7 @@ paths:
       tags:
         - Categories
       summary: Listar todas las categorías
-      description: Retorna todas las categorías con sus subcategorías y videos relacionados
+      description: Retorna todas las categorías con sus subcategorías y videos relacionados. Los nombres están en minúsculas.
       operationId: getAllCategories
       responses:
         '200':
@@ -67,14 +69,15 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Category'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
 
     post:
       tags:
         - Categories
-      summary: Crear una categoría
-      description: Crea una nueva categoría o subcategoría
+      summary: Crear una categoría o subcategoría
+      description: |
+        Crea una nueva categoría (principal) o subcategoría.
+        El nombre se convierte a minúsculas automáticamente.
+        Evita duplicados case-insensitive.
       operationId: createCategory
       requestBody:
         required: true
@@ -82,6 +85,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateCategoryRequest'
+            example:
+              name: JavaScript
+              parentId: null
       responses:
         '201':
           description: Categoría creada exitosamente
@@ -89,21 +95,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CategoryResponse'
+              example:
+                success: true
+                data:
+                  id: 5
+                  name: javascript
+                  parentId: null
         '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
+          description: El nombre está vacío
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error: El nombre no puede estar vacío
         '409':
-          $ref: '#/components/responses/Conflict'
+          description: La categoría o subcategoría ya existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error: La categoría 'react' ya existe
 
   /api/categories/{id}:
     delete:
       tags:
         - Categories
       summary: Eliminar una categoría
-      description: |
-        Elimina una categoría por su ID.
-        No se puede eliminar si tiene subcategorías o videos asociados.
+      description: Elimina una categoría por su ID. No se puede eliminar si tiene subcategorías o videos asociados.
       operationId: deleteCategory
       parameters:
         - name: id
@@ -132,10 +154,10 @@ paths:
         - name: categoryId
           in: query
           required: false
-          description: Filtrar videos por categoría
+          description: Filtrar videos por categoría (subcategoría)
           schema:
             type: integer
-            example: 1
+            example: 2
       responses:
         '200':
           description: Lista de videos obtenida exitosamente
@@ -150,21 +172,54 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Video'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
 
     post:
       tags:
         - Videos
-      summary: Crear un video
-      description: Crea un nuevo video asociado a una categoría
+      summary: Crear un video con archivos
+      description: |
+        Crea un nuevo video subiendo archivos de video e imagen.
+        Usa multipart/form-data.
+        El título y descripción son obligatorios.
       operationId: createVideo
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CreateVideoRequest'
+              type: object
+              required:
+                - titulo
+                - descripcion
+                - categoria
+                - subCategoria
+                - video
+                - miniatura
+              properties:
+                titulo:
+                  type: string
+                  description: Título del video
+                  example: Tutorial useState
+                descripcion:
+                  type: string
+                  description: Descripción del video
+                  example: Aprende a usar useState en React
+                categoria:
+                  type: string
+                  description: ID de la categoría principal
+                  example: "1"
+                subCategoria:
+                  type: string
+                  description: ID de la subcategoría
+                  example: "2"
+                video:
+                  type: string
+                  format: binary
+                  description: Archivo de video (mp4, webm, etc.)
+                miniatura:
+                  type: string
+                  format: binary
+                  description: Archivo de imagen para miniatura (jpg, png)
       responses:
         '201':
           description: Video creado exitosamente
@@ -172,17 +227,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VideoResponse'
+              example:
+                success: true
+                data:
+                  id: 1
+                  title: Tutorial useState
+                  description: Aprende a usar useState en React
+                  videoPath: /home/fere/proyect/api-video/assets/backend/videos/tutorial_usestate.mp4
+                  thumbnailPath: /home/fere/proyect/api-video/assets/backend/imagenes/tutorial_usestate.jpg
+                  categoryId: 2
+                  parentCategoryId: 1
+                  createdAt: 2026-05-08T12:00:00.000Z
         '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
+          description: Error en los datos enviados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                campos faltantes:
+                  value:
+                    success: false
+                    error: Todos los campos son requeridos
+                archivos faltantes:
+                  value:
+                    success: false
+                    error: El video y la miniatura son obligatorios
 
   /api/videos/{id}:
     delete:
       tags:
         - Videos
       summary: Eliminar un video
-      description: Elimina un video por su ID
+      description: Elimina un video por su ID y los archivos asociados
       operationId: deleteVideo
       parameters:
         - name: id
@@ -210,8 +287,8 @@ components:
           example: 1
         name:
           type: string
-          description: Nombre de la categoría
-          example: "React"
+          description: Nombre de la categoría (siempre en minúsculas)
+          example: react
         parentId:
           type: integer
           nullable: true
@@ -239,13 +316,13 @@ components:
           type: string
           minLength: 1
           maxLength: 255
-          description: Nombre de la categoría
-          example: "React"
+          description: Nombre de la categoría (se convertirá a minúsculas)
+          example: React
         parentId:
           type: integer
           nullable: true
-          description: ID de la categoría padre (opcional, para subcategorías)
-          example: null
+          description: ID de la categoría padre (para crear subcategorías)
+          example: 1
 
     CategoryResponse:
       type: object
@@ -267,67 +344,35 @@ components:
         title:
           type: string
           description: Título del video
-          example: "Tutorial useState"
+          example: Tutorial useState
         description:
           type: string
-          nullable: true
           description: Descripción del video
-          example: "Aprende a usar useState en React"
+          example: Aprende a usar useState en React
         videoPath:
           type: string
-          description: Ruta del archivo de video
-          example: "/videos/tutorial-usestate.mp4"
+          description: Ruta absoluta del archivo de video
+          example: /home/fere/proyect/api-video/assets/backend/videos/tutorial_usestate.mp4
         thumbnailPath:
           type: string
-          nullable: true
-          description: Ruta de la miniatura
-          example: "/thumbnails/usestate.jpg"
+          description: Ruta absoluta de la miniatura
+          example: /home/fere/proyect/api-video/assets/backend/imagenes/tutorial_usestate.jpg
         categoryId:
           type: integer
-          description: ID de la categoría asociada
+          description: ID de la subcategoría
           example: 2
+        parentCategoryId:
+          type: integer
+          nullable: true
+          description: ID de la categoría principal
+          example: 1
         category:
           $ref: '#/components/schemas/Category'
         createdAt:
           type: string
           format: date-time
           description: Fecha de creación del video
-          example: "2026-05-07T12:00:00.000Z"
-
-    CreateVideoRequest:
-      type: object
-      required:
-        - title
-        - description
-        - videoPath
-        - thumbnailPath
-        - categoryId
-      properties:
-        title:
-          type: string
-          minLength: 1
-          maxLength: 255
-          description: Título del video
-          example: "Tutorial useState"
-        description:
-          type: string
-          maxLength: 1000
-          description: Descripción del video
-          example: "Aprende a usar useState en React"
-        videoPath:
-          type: string
-          minLength: 1
-          description: Ruta del archivo de video
-          example: "/videos/tutorial-usestate.mp4"
-        thumbnailPath:
-          type: string
-          minLength: 1
-          description: Ruta de la miniatura del video
-          example: "/thumbnails/usestate.jpg"
-        categoryId:
-          type: integer
-          description: ID de la categoría a la que pertenece el video
-          example: 2
+          example: 2026-05-08T12:00:00.000Z
 
     VideoResponse:
       type: object
@@ -347,30 +392,7 @@ components:
         error:
           type: string
           description: Mensaje de error
-          example: "Error message"
-
-    ValidationError:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: false
-        error:
-          type: string
-          example: "Validation Error"
-        details:
-          type: array
-          items:
-            type: object
-            properties:
-              field:
-                type: string
-                description: Campo que falló la validación
-                example: "name"
-              message:
-                type: string
-                description: Mensaje de validación
-                example: "Name is required"
+          example: La categoría 'react' ya existe
 
   responses:
     BadRequest:
@@ -378,7 +400,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ValidationError'
+            $ref: '#/components/schemas/Error'
 
     NotFound:
       description: Recurso no encontrado
@@ -388,14 +410,7 @@ components:
             $ref: '#/components/schemas/Error'
 
     Conflict:
-      description: Conflicto de datos
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-
-    InternalServerError:
-      description: Error interno del servidor
+      description: Conflicto de datos (categoría duplicada)
       content:
         application/json:
           schema:
