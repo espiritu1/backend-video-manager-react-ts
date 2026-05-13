@@ -15,6 +15,9 @@ const swaggerDocument = JSON.parse(readFileSync(join(process.cwd(), "openapi.jso
 app.use(cors());
 app.use(express.json());
 
+app.use("/videos", express.static(join(process.cwd(), "assets", "backend", "videos")));
+app.use("/imagenes", express.static(join(process.cwd(), "assets", "backend", "imagenes")));
+
 const upload = multer({ dest: join(process.cwd(), "assets", "backend", "temp") });
 
 app.get("/health", (_req, res) => {

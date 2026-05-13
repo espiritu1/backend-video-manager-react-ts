@@ -11,6 +11,9 @@ API REST desarrollada con arquitectura limpia (Clean Architecture) que permite g
 - ✅ CRUD completo de categorías (crear, listar, borrar)
 - ✅ CRUD completo de videos (crear, listar, borrar)
 - ✅ Soporte para subcategorías recursivas (categorías dentro de categorías)
+- ✅ Búsqueda de videos por título, categoría o subcategoría
+- ✅ Búsqueda ligera (solo id y title) para autocompletado
+- ✅ Video más reciente y búsqueda por ID
 - ✅ Validación de datos con Zod
 - ✅ Manejo centralizado de errores
 - ✅ Base de datos PostgreSQL con Prisma ORM
@@ -165,22 +168,62 @@ POST /api/categories
 
 ### Videos
 
-| Método | Endpoint                   | Descripción                 |
-|--------|----------------------------|-----------------------------|
-| GET    | `/api/videos`              | Listar todos los videos     |
-| GET    | `/api/videos?categoryId=1` | Listar videos por categoría |
-| POST   | `/api/videos`              | Crear un video              |
-| DELETE | `/api/videos/:id`          | Eliminar un video           |
+| Método | Endpoint                        | Descripción                              |
+|--------|----------------------------------|------------------------------------------|
+| GET    | `/api/videos`                   | Listar todos los videos                  |
+| GET    | `/api/videos?search=react`      | Buscar videos (devuelve solo id y title) |
+| GET    | `/api/videos?categoryId=1`      | Listar videos por categoría              |
+| GET    | `/api/videos/latest`            | Obtener el video más reciente            |
+| GET    | `/api/videos/:id`               | Obtener un video por ID                  |
+| POST   | `/api/videos`                   | Crear un video (con archivos)            |
+| DELETE | `/api/videos/:id`               | Eliminar un video                        |
 
-#### Ejemplo crear video:
-```json
+#### Búsqueda de videos
+
+El parámetro `search` permite buscar por título, categoría o subcategoría. Cuando se usa, devuelve solo `id` y `title` para autocompletado:
+
+```bash
+# Buscar videos - devuelve lista ligera
+GET /api/videos?search=react
+
+# Respuesta: [{ "id": 1, "title": "Tutorial useState" }]
+
+# Sin search - devuelve video completo
+GET /api/videos
+
+# Respuesta completa con videoUrl, thumbnailUrl, category, subCategory
+```
+
+#### Ejemplo crear video (multipart/form-data):
+
+```bash
 POST /api/videos
+Content-Type: multipart/form-data
+
+# Campos del formulario:
+- titulo: "Tutorial useState"
+- descripcion: "Aprende a usar useState en React"
+- categoria: "1" (ID de la categoría padre)
+- subCategoria: "2" (ID de la subcategoría)
+- video: (archivo de video)
+- miniatura: (archivo de imagen)
+```
+
+#### Respuesta de video (formato completo):
+
+```json
 {
-  "title": "Tutorial useState",
-  "description": "Aprende a usar useState en React",
-  "videoPath": "/videos/tutorial-usestate.mp4",
-  "thumbnailPath": "/thumbnails/usestate.jpg",
-  "categoryId": 2
+  "success": true,
+  "data": {
+    "id": 1,
+    "title": "Tutorial useState",
+    "description": "Aprende a usar useState en React",
+    "category": "react",
+    "subCategory": "hooks",
+    "videoUrl": "http://localhost:3000/videos/tutorial_usestate.mp4",
+    "thumbnailUrl": "http://localhost:3000/imagenes/tutorial_usestate.jpg",
+    "createdAt": "2026-05-08T12:00:00.000Z"
+  }
 }
 ```
 

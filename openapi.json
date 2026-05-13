@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Video Manager API",
-    "description": "API REST para gestión de videos y categorías con soporte para subcategorías recursivas.\n\n## Características\n- CRUD de categorías (crear, listar, borrar)\n- CRUD de videos (crear, listar, borrar)\n- Soporte para subcategorías recursivas\n- Validación de datos con Zod",
+    "description": "API REST para gestión de videos y categorías con soporte para subcategorías recursivas.\n\n## Características\n- CRUD de categorías y subcategorías\n- CRUD de videos con upload de archivos\n- Validación de categorías sin duplicados (case-insensitive)\n- Los nombres de categorías se normalizan a minúsculas\n- Los videos se guardan en assets/backend/videos\n- Las miniaturas se guardan en assets/backend/imagenes",
     "version": "1.0.0",
     "contact": {
       "name": "Soporte",
@@ -26,7 +26,7 @@
     },
     {
       "name": "Videos",
-      "description": "Gestión de videos"
+      "description": "Gestión de videos con upload de archivos"
     }
   ],
   "paths": {
@@ -60,7 +60,7 @@
       "get": {
         "tags": ["Categories"],
         "summary": "Listar todas las categorías",
-        "description": "Retorna todas las categorías con sus subcategorías y videos relacionados",
+        "description": "Retorna todas las categorías con sus subcategorías y videos relacionados. Los nombres están en minúsculas.",
         "operationId": "getAllCategories",
         "responses": {
           "200": {
@@ -80,19 +80,30 @@
                       }
                     }
                   }
+                },
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "id": 1,
+                      "name": "react",
+                      "parentId": null,
+                      "children": [
+                        { "id": 2, "name": "hooks", "parentId": 1 }
+                      ],
+                      "videos": []
+                    }
+                  ]
                 }
               }
             }
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
           }
         }
       },
       "post": {
         "tags": ["Categories"],
-        "summary": "Crear una categoría",
-        "description": "Crea una nueva categoría o subcategoría",
+        "summary": "Crear una categoría o subcategoría",
+        "description": "Crea una nueva categoría (principal) o subcategoría. El nombre se convierte a minúsculas automáticamente. Evita duplicados case-insensitive.",
         "operationId": "createCategory",
         "requestBody": {
           "required": true,
@@ -100,6 +111,10 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CreateCategoryRequest"
+              },
+              "example": {
+                "name": "JavaScript",
+                "parentId": null
               }
             }
           }
@@ -111,18 +126,63 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CategoryResponse"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": 5,
+                    "name": "javascript",
+                    "parentId": null
+                  }
                 }
               }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "El nombre está vacío",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "success": false,
+                  "error": "El nombre no puede estar vacío"
+                }
+              }
+            }
           },
           "404": {
-            "$ref": "#/components/responses/NotFound"
+            "description": "Categoría padre no encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "409": {
-            "$ref": "#/components/responses/Conflict"
+            "description": "La categoría o subcategoría ya existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "success": false,
+                  "error": "La categoría 'react' ya existe"
+                },
+                "examples": {
+                  "subcategoria duplicada": {
+                    "value": {
+                      "success": false,
+                      "error": "La subcategoría 'hooks' ya existe en la categoría 'react'"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -162,17 +222,27 @@
       "get": {
         "tags": ["Videos"],
         "summary": "Listar todos los videos",
-        "description": "Retorna todos los videos, opcionalmente filtrados por categoría",
+        "description": "Retorna todos los videos, opcionalmente filtrados por categoría o búsqueda. Cuando se usa el parámetro 'search', devuelve solo id y title para autocompletado.",
         "operationId": "getAllVideos",
         "parameters": [
           {
             "name": "categoryId",
             "in": "query",
             "required": false,
-            "description": "Filtrar videos por categoría",
+            "description": "Filtrar videos por categoría (subcategoría)",
             "schema": {
               "type": "integer",
-              "example": 1
+              "example": 2
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "description": "Buscar videos por título, categoría o subcategoría. Cuando se usa, devuelve solo id y title para autocompletado.",
+            "schema": {
+              "type": "string",
+              "example": "react"
             }
           }
         ],
@@ -197,23 +267,59 @@
                 }
               }
             }
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
           }
         }
       },
       "post": {
         "tags": ["Videos"],
-        "summary": "Crear un video",
-        "description": "Crea un nuevo video asociado a una categoría",
+        "summary": "Crear un video con archivos",
+        "description": "Crea un nuevo video subiendo archivos de video e imagen. Usa multipart/form-data. El título y descripción son obligatorios.",
         "operationId": "createVideo",
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVideoRequest"
+                "type": "object",
+                "required": ["titulo", "descripcion", "categoria", "subCategoria", "video", "miniatura"],
+                "properties": {
+                  "titulo": {
+                    "type": "string",
+                    "description": "Título del video",
+                    "example": "Tutorial useState"
+                  },
+                  "descripcion": {
+                    "type": "string",
+                    "description": "Descripción del video",
+                    "example": "Aprende a usar useState en React"
+                  },
+                  "categoria": {
+                    "type": "string",
+                    "description": "ID de la categoría principal",
+                    "example": "1"
+                  },
+                  "subCategoria": {
+                    "type": "string",
+                    "description": "ID de la subcategoría",
+                    "example": "2"
+                  },
+                  "video": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Archivo de video (mp4, webm, etc.)"
+                  },
+                  "miniatura": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Archivo de imagen para miniatura (jpg, png)"
+                  }
+                }
+              },
+              "example": {
+                "titulo": "Tutorial useState",
+                "descripcion": "Aprende a usar useState en React",
+                "categoria": "1",
+                "subCategoria": "2"
               }
             }
           }
@@ -225,24 +331,161 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VideoResponse"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": 1,
+                    "title": "Tutorial useState",
+                    "description": "Aprende a usar useState en React",
+                    "category": "react",
+                    "subCategory": "hooks",
+                    "videoUrl": "http://localhost:3000/videos/tutorial_usestate.mp4",
+                    "thumbnailUrl": "http://localhost:3000/imagenes/tutorial_usestate.jpg",
+                    "createdAt": "2026-05-08T12:00:00.000Z"
+                  }
                 }
               }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Error en los datos enviados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "campos faltantes": {
+                    "value": {
+                      "success": false,
+                      "error": "Todos los campos son requeridos"
+                    }
+                  },
+                  "archivos faltantes": {
+                    "value": {
+                      "success": false,
+                      "error": "El video y la miniatura son obligatorios"
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "$ref": "#/components/responses/NotFound"
+            "description": "Categoría o subcategoría no encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/videos/latest": {
+      "get": {
+        "tags": ["Videos"],
+        "summary": "Obtener el video más reciente",
+        "description": "Retorna el video más reciente creado",
+        "operationId": "getLatestVideo",
+        "responses": {
+          "200": {
+            "description": "Video más reciente obtenido exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoResponse"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": 1,
+                    "title": "Tutorial useState",
+                    "description": "Aprende a usar useState en React",
+                    "category": "react",
+                    "subCategory": "hooks",
+                    "videoUrl": "http://localhost:3000/videos/tutorial_usestate.mp4",
+                    "thumbnailUrl": "http://localhost:3000/imagenes/tutorial_usestate.jpg",
+                    "createdAt": "2026-05-08T12:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No hay videos disponibles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/videos/{id}": {
+      "get": {
+        "tags": ["Videos"],
+        "summary": "Obtener un video por ID",
+        "description": "Retorna un video específico por su ID",
+        "operationId": "getVideoById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID del video a obtener",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Video obtenido exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoResponse"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": 1,
+                    "title": "Tutorial useState",
+                    "description": "Aprende a usar useState en React",
+                    "category": "react",
+                    "subCategory": "hooks",
+                    "videoUrl": "http://localhost:3000/videos/tutorial_usestate.mp4",
+                    "thumbnailUrl": "http://localhost:3000/imagenes/tutorial_usestate.jpg",
+                    "createdAt": "2026-05-08T12:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Video no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
       "delete": {
         "tags": ["Videos"],
         "summary": "Eliminar un video",
-        "description": "Elimina un video por su ID",
+        "description": "Elimina un video por su ID y los archivos asociados",
         "operationId": "deleteVideo",
         "parameters": [
           {
@@ -280,8 +523,8 @@
           },
           "name": {
             "type": "string",
-            "description": "Nombre de la categoría",
-            "example": "React"
+            "description": "Nombre de la categoría (siempre en minúsculas)",
+            "example": "react"
           },
           "parentId": {
             "type": "integer",
@@ -316,14 +559,14 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 255,
-            "description": "Nombre de la categoría",
+            "description": "Nombre de la categoría (se convertirá a minúsculas)",
             "example": "React"
           },
           "parentId": {
             "type": "integer",
             "nullable": true,
-            "description": "ID de la categoría padre (opcional, para subcategorías)",
-            "example": null
+            "description": "ID de la categoría padre (para crear subcategorías)",
+            "example": 1
           }
         }
       },
@@ -355,70 +598,34 @@
           },
           "description": {
             "type": "string",
-            "nullable": true,
             "description": "Descripción del video",
             "example": "Aprende a usar useState en React"
           },
-          "videoPath": {
-            "type": "string",
-            "description": "Ruta del archivo de video",
-            "example": "/videos/tutorial-usestate.mp4"
-          },
-          "thumbnailPath": {
-            "type": "string",
-            "nullable": true,
-            "description": "Ruta de la miniatura",
-            "example": "/thumbnails/usestate.jpg"
-          },
-          "categoryId": {
-            "type": "integer",
-            "description": "ID de la categoría asociada",
-            "example": 2
-          },
           "category": {
-            "$ref": "#/components/schemas/Category"
+            "type": "string",
+            "description": "Nombre de la categoría principal (padre)",
+            "example": "react"
+          },
+          "subCategory": {
+            "type": "string",
+            "description": "Nombre de la subcategoría",
+            "example": "hooks"
+          },
+          "videoUrl": {
+            "type": "string",
+            "description": "URL pública del archivo de video",
+            "example": "http://localhost:3000/videos/tutorial_usestate.mp4"
+          },
+          "thumbnailUrl": {
+            "type": "string",
+            "description": "URL pública de la miniatura",
+            "example": "http://localhost:3000/imagenes/tutorial_usestate.jpg"
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
             "description": "Fecha de creación del video",
-            "example": "2026-05-07T12:00:00.000Z"
-          }
-        }
-      },
-      "CreateVideoRequest": {
-        "type": "object",
-        "required": ["title", "description", "videoPath", "thumbnailPath", "categoryId"],
-        "properties": {
-          "title": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 255,
-            "description": "Título del video",
-            "example": "Tutorial useState"
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 1000,
-            "description": "Descripción del video",
-            "example": "Aprende a usar useState en React"
-          },
-          "videoPath": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Ruta del archivo de video",
-            "example": "/videos/tutorial-usestate.mp4"
-          },
-          "thumbnailPath": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Ruta de la miniatura del video",
-            "example": "/thumbnails/usestate.jpg"
-          },
-          "categoryId": {
-            "type": "integer",
-            "description": "ID de la categoría a la que pertenece el video",
-            "example": 2
+            "example": "2026-05-08T12:00:00.000Z"
           }
         }
       },
@@ -444,38 +651,7 @@
           "error": {
             "type": "string",
             "description": "Mensaje de error",
-            "example": "Error message"
-          }
-        }
-      },
-      "ValidationError": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "example": false
-          },
-          "error": {
-            "type": "string",
-            "example": "Validation Error"
-          },
-          "details": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "field": {
-                  "type": "string",
-                  "description": "Campo que falló la validación",
-                  "example": "name"
-                },
-                "message": {
-                  "type": "string",
-                  "description": "Mensaje de validación",
-                  "example": "Name is required"
-                }
-              }
-            }
+            "example": "La categoría 'react' ya existe"
           }
         }
       }
@@ -486,7 +662,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ValidationError"
+              "$ref": "#/components/schemas/Error"
             }
           }
         }
@@ -502,17 +678,7 @@
         }
       },
       "Conflict": {
-        "description": "Conflicto de datos",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            }
-          }
-        }
-      },
-      "InternalServerError": {
-        "description": "Error interno del servidor",
+        "description": "Conflicto de datos (categoría duplicada)",
         "content": {
           "application/json": {
             "schema": {

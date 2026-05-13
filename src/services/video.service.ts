@@ -9,6 +9,12 @@ const VIDEOS_PATH = join(BASE_PATH, "videos");
 const IMAGENES_PATH = join(BASE_PATH, "imagenes");
 const TEMP_PATH = join(BASE_PATH, "temp");
 
+const getBaseUrl = () => {
+  const host = process.env.HOST || "localhost";
+  const port = process.env.PORT || 3000;
+  return `http://${host}:${port}`;
+};
+
 interface MulterFile {
   fieldname: string;
   originalname: string;
@@ -104,12 +110,16 @@ export const videoService = {
     renameSync(data.video.path, finalVideoPath);
     renameSync(data.miniatura.path, finalImagePath);
 
+    const baseUrl = getBaseUrl();
+    const videoUrl = `${baseUrl}/videos/${videoFileName}`;
+    const thumbnailUrl = `${baseUrl}/imagenes/${imageFileName}`;
+
     return prisma.video.create({
       data: {
         title: data.titulo,
         description: data.descripcion,
-        videoPath: finalVideoPath,
-        thumbnailPath: finalImagePath,
+        videoUrl: videoUrl,
+        thumbnailUrl: thumbnailUrl,
         categoryId: categoryId,
         parentCategoryId: parentCategoryId,
       },
@@ -120,17 +130,42 @@ export const videoService = {
   },
 
   async findAll(query?: VideoQuery) {
-    const where = query?.categoryId
-      ? { categoryId: query.categoryId }
-      : undefined;
+    const conditions: any[] = [];
 
-    return prisma.video.findMany({
+    if (query?.categoryId) {
+      conditions.push({ categoryId: query.categoryId });
+    }
+
+    if (query?.search) {
+      conditions.push({
+        OR: [
+          { title: { contains: query.search, mode: "insensitive" } },
+          { category: { name: { contains: query.search, mode: "insensitive" } } },
+          { category: { parent: { name: { contains: query.search, mode: "insensitive" } } } },
+        ],
+      });
+    }
+
+    const where = conditions.length > 0 ? { AND: conditions } : undefined;
+    const isSearch = !!query?.search;
+
+    const videos = await prisma.video.findMany({
       where,
       include: {
-        category: true,
+        category: {
+          include: {
+            parent: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
+
+    if (isSearch) {
+      return videos.map((v) => ({ id: v.id, title: v.title }));
+    }
+
+    return videos;
   },
 
   async delete(id: number) {
@@ -143,11 +178,14 @@ export const videoService = {
     }
 
     try {
-      if (existsSync(video.videoPath)) {
-        unlinkSync(video.videoPath);
+      const videoFileName = video.videoUrl.split("/").pop();
+      const thumbnailFileName = video.thumbnailUrl.split("/").pop();
+      
+      if (videoFileName && existsSync(join(VIDEOS_PATH, videoFileName))) {
+        unlinkSync(join(VIDEOS_PATH, videoFileName));
       }
-      if (existsSync(video.thumbnailPath)) {
-        unlinkSync(video.thumbnailPath);
+      if (thumbnailFileName && existsSync(join(IMAGENES_PATH, thumbnailFileName))) {
+        unlinkSync(join(IMAGENES_PATH, thumbnailFileName));
       }
     } catch (error) {
       console.error("Error deleting files:", error);
@@ -162,12 +200,35 @@ export const videoService = {
     const video = await prisma.video.findUnique({
       where: { id },
       include: {
-        category: true,
+        category: {
+          include: {
+            parent: true,
+          },
+        },
       },
     });
 
     if (!video) {
       throw createError("Video not found", 404);
+    }
+
+    return video;
+  },
+
+  async findLatest() {
+    const video = await prisma.video.findFirst({
+      orderBy: { id: "desc" },
+      include: {
+        category: {
+          include: {
+            parent: true,
+          },
+        },
+      },
+    });
+
+    if (!video) {
+      throw createError("No hay videos disponibles", 404);
     }
 
     return video;

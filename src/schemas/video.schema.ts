@@ -4,7 +4,7 @@ export const createVideoSchema = z.object({
   titulo: z.string().min(1, "El título es requerido").max(255, "Título muy largo"),
   descripcion: z.string().min(1, "La descripción es requerida").max(1000, "Descripción muy larga"),
   categoria: z.string().min(1, "La categoría es requerida"),
-  subCategoria: z.string().optional(),
+  subCategoria: z.string().min(1,"La subcategoría es requerida"),
   video: z.any(),
   miniatura: z.any(),
 });
@@ -25,6 +25,7 @@ export const videoQuerySchema = z.object({
     .transform((val) => parseInt(val, 10))
     .pipe(z.number().int().positive())
     .optional(),
+  search: z.string().optional(),
 });
 
 export type VideoQuery = z.infer<typeof videoQuerySchema>;

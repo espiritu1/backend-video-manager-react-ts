@@ -51,12 +51,65 @@ export const videoController = {
   async findAll(req: Request, res: Response) {
     const query = videoQuerySchema.parse(req.query);
     const videos = await videoService.findAll(query);
-    res.json({ success: true, data: videos });
+    
+    const isSearch = !!query.search;
+    
+    if (isSearch) {
+      return res.json({ success: true, data: videos });
+    }
+    
+    const formattedVideos = videos.map((video: any) => ({
+      id: video.id,
+      title: video.title,
+      description: video.description,
+      category: video.category?.parent?.name || null,
+      subCategory: video.category?.name || null,
+      createdAt: video.createdAt,
+      videoUrl: video.videoUrl,
+      thumbnailUrl: video.thumbnailUrl,
+    }));
+    
+    res.json({ success: true, data: formattedVideos });
   },
 
   async delete(req: Request, res: Response) {
     const { id } = videoIdParamSchema.parse(req.params);
     await videoService.delete(id);
     res.status(204).send();
+  },
+
+  async findById(req: Request, res: Response) {
+    const { id } = videoIdParamSchema.parse(req.params);
+    const video = await videoService.findById(id);
+    
+    const response = {
+      id: video.id,
+      title: video.title,
+      description: video.description,
+      category: video.category?.parent?.name || null,
+      subCategory: video.category?.name || null,
+      createdAt: video.createdAt,
+      videoUrl: video.videoUrl,
+      thumbnailUrl: video.thumbnailUrl,
+    };
+
+    res.json({ success: true, data: response });
+  },
+
+  async findLatest(req: Request, res: Response) {
+    const video = await videoService.findLatest();
+    
+    const response = {
+      id: video.id,
+      title: video.title,
+      description: video.description,
+      category: video.category?.parent?.name || null,
+      subCategory: video.category?.name || null,
+      createdAt: video.createdAt,
+      videoUrl: video.videoUrl,
+      thumbnailUrl: video.thumbnailUrl,
+    };
+
+    res.json({ success: true, data: response });
   },
 };
