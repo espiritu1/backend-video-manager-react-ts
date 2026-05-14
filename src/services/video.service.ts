@@ -174,7 +174,7 @@ export const videoService = {
     });
 
     if (!video) {
-      throw createError("Video not found", 404);
+      throw createError("Recurso no disponible no se encontro el video para eliminarlo", 404);
     }
 
     try {

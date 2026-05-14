@@ -178,6 +178,24 @@ POST /api/categories
 | POST   | `/api/videos`                   | Crear un video (con archivos)            |
 | DELETE | `/api/videos/:id`               | Eliminar un video                        |
 
+#### Respuestas al eliminar video
+
+**Éxito (200):**
+```json
+{
+  "success": true,
+  "message": "Video eliminado exitosamente"
+}
+```
+
+**Error (404):**
+```json
+{
+  "success": false,
+  "error": "Recurso no disponible no se encontro el video para eliminarlo"
+}
+```
+
 #### Búsqueda de videos
 
 El parámetro `search` permite buscar por título, categoría o subcategoría. Cuando se usa, devuelve solo `id` y `title` para autocompletado:

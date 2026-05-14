@@ -75,7 +75,7 @@ export const videoController = {
   async delete(req: Request, res: Response) {
     const { id } = videoIdParamSchema.parse(req.params);
     await videoService.delete(id);
-    res.status(204).send();
+    res.status(200).json({ success: true, message: "Video eliminado exitosamente" });
   },
 
   async findById(req: Request, res: Response) {

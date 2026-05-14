@@ -500,11 +500,39 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "Video eliminado exitosamente"
+          "200": {
+            "description": "Video eliminado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Video eliminado exitosamente"
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "$ref": "#/components/responses/NotFound"
+            "description": "Video no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "success": false,
+                  "error": "Recurso no disponible no se encontro el video para eliminarlo"
+                }
+              }
+            }
           }
         }
       }
