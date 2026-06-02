@@ -19,7 +19,7 @@ model Category {
 
   videos    Video[]
 
-  @@unique([name, parentId])
+  @@unique([name])
   @@map("categories")
 }
 

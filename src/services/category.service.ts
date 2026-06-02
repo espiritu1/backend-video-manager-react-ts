@@ -19,27 +19,17 @@ export const categoryService = {
       }
     }
 
-    const parentIdFilter = data.parentId ?? null;
-
     const existing = await prisma.category.findFirst({
       where: {
         name: {
           equals: normalizedName,
           mode: "insensitive",
         },
-        parentId: parentIdFilter,
       },
     });
 
     if (existing) {
-      if (data.parentId) {
-        const parent = await prisma.category.findUnique({
-          where: { id: data.parentId },
-        });
-        throw createError(`La subcategoría '${normalizedName}' ya existe en la categoría '${parent?.name}'`, 409);
-      } else {
-        throw createError(`La categoría '${normalizedName}' ya existe`, 409);
-      }
+      throw createError(`La categoría '${normalizedName}' ya existe`, 409);
     }
 
     return prisma.category.create({
