@@ -10,6 +10,15 @@ export const categoryController = {
   },
 
   async findAll(req: Request, res: Response) {
+    const parentId = req.query.parentId
+      ? parseInt(req.query.parentId as string, 10)
+      : undefined;
+
+    if (parentId) {
+      const children = await categoryService.findByParentId(parentId);
+      return res.json({ success: true, data: children });
+    }
+
     const categories = await categoryService.findAll();
     res.json({ success: true, data: categories });
   },

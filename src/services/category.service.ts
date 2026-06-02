@@ -77,6 +77,13 @@ export const categoryService = {
     });
   },
 
+  async findByParentId(parentId: number) {
+    return prisma.category.findMany({
+      where: { parentId },
+      orderBy: { name: "asc" },
+    });
+  },
+
   async findById(id: number) {
     const category = await prisma.category.findUnique({
       where: { id },
