@@ -9,8 +9,9 @@ info:
     - CRUD de videos con upload de archivos
     - Validación de categorías sin duplicados (case-insensitive)
     - Los nombres de categorías se normalizan a minúsculas
-    - Los videos se guardan en assets/backend/videos
-    - Las miniaturas se guardan en assets/backend/imagenes
+    - Búsqueda de videos por título, categoría o subcategoría
+    - Los videos se sirven como URLs públicas (assets/backend/videos)
+    - Las miniaturas se sirven como URLs públicas (assets/backend/imagenes)
   version: 1.0.0
   contact:
     name: Soporte
@@ -53,8 +54,18 @@ paths:
       tags:
         - Categories
       summary: Listar todas las categorías
-      description: Retorna todas las categorías con sus subcategorías y videos relacionados. Los nombres están en minúsculas.
+      description: |
+        Retorna todas las categorías con sus subcategorías y videos relacionados.
+        Si se especifica parentId, devuelve solo los hijos directos.
       operationId: getAllCategories
+      parameters:
+        - name: parentId
+          in: query
+          required: false
+          description: ID de la categoría padre para filtrar hijos directos
+          schema:
+            type: integer
+            example: 1
       responses:
         '200':
           description: Lista de categorías obtenida exitosamente
@@ -77,7 +88,7 @@ paths:
       description: |
         Crea una nueva categoría (principal) o subcategoría.
         El nombre se convierte a minúsculas automáticamente.
-        Evita duplicados case-insensitive.
+        Evita duplicados (nombres únicos globalmente).
       operationId: createCategory
       requestBody:
         required: true
@@ -110,8 +121,17 @@ paths:
               example:
                 success: false
                 error: El nombre no puede estar vacío
+        '404':
+          description: Categoría padre no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error: Categoría padre no encontrada
         '409':
-          description: La categoría o subcategoría ya existe
+          description: La categoría ya existe
           content:
             application/json:
               schema:
@@ -136,19 +156,45 @@ paths:
             type: integer
             example: 1
       responses:
-        '204':
+        '200':
           description: Categoría eliminada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Categoría eliminada exitosamente
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: No se puede eliminar (tiene subcategorías o videos)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                tieneSubcategorias:
+                  value:
+                    success: false
+                    error: Cannot delete category with subcategories
+                tieneVideos:
+                  value:
+                    success: false
+                    error: Cannot delete category with videos
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/CategoryNotFound'
 
   /api/videos:
     get:
       tags:
         - Videos
       summary: Listar todos los videos
-      description: Retorna todos los videos, opcionalmente filtrados por categoría
+      description: |
+        Retorna todos los videos, opcionalmente filtrados por categoría o búsqueda.
+        Cuando se usa search, devuelve solo id y title para autocompletado.
       operationId: getAllVideos
       parameters:
         - name: categoryId
@@ -158,6 +204,13 @@ paths:
           schema:
             type: integer
             example: 2
+        - name: search
+          in: query
+          required: false
+          description: Buscar videos por título, categoría o subcategoría (devuelve solo id y title)
+          schema:
+            type: string
+            example: react
       responses:
         '200':
           description: Lista de videos obtenida exitosamente
@@ -233,10 +286,10 @@ paths:
                   id: 1
                   title: Tutorial useState
                   description: Aprende a usar useState en React
-                  videoPath: /home/fere/proyect/api-video/assets/backend/videos/tutorial_usestate.mp4
-                  thumbnailPath: /home/fere/proyect/api-video/assets/backend/imagenes/tutorial_usestate.jpg
-                  categoryId: 2
-                  parentCategoryId: 1
+                  category: react
+                  subCategory: hooks
+                  videoUrl: http://localhost:3000/videos/tutorial_usestate.mp4
+                  thumbnailUrl: http://localhost:3000/imagenes/tutorial_usestate.jpg
                   createdAt: 2026-05-08T12:00:00.000Z
         '400':
           description: Error en los datos enviados
@@ -245,16 +298,111 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               examples:
-                campos faltantes:
+                camposFaltantes:
                   value:
                     success: false
                     error: Todos los campos son requeridos
-                archivos faltantes:
+                archivosFaltantes:
                   value:
                     success: false
                     error: El video y la miniatura son obligatorios
+                idInvalido:
+                  value:
+                    success: false
+                    error: El ID de subcategoría debe ser un número válido
+        '404':
+          description: Categoría o subcategoría no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                subcategoriaNoEncontrada:
+                  value:
+                    success: false
+                    error: Subcategoría no encontrada
+                categoriaNoEncontrada:
+                  value:
+                    success: false
+                    error: Categoría no encontrada
+
+  /api/videos/latest:
+    get:
+      tags:
+        - Videos
+      summary: Obtener el video más reciente
+      description: Retorna el video más reciente creado
+      operationId: getLatestVideo
+      responses:
+        '200':
+          description: Video más reciente obtenido exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoResponse'
+              example:
+                success: true
+                data:
+                  id: 1
+                  title: Tutorial useState
+                  description: Aprende a usar useState en React
+                  category: react
+                  subCategory: hooks
+                  videoUrl: http://localhost:3000/videos/tutorial_usestate.mp4
+                  thumbnailUrl: http://localhost:3000/imagenes/tutorial_usestate.jpg
+                  createdAt: 2026-05-08T12:00:00.000Z
+        '404':
+          description: No hay videos disponibles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error: No hay videos disponibles
 
   /api/videos/{id}:
+    get:
+      tags:
+        - Videos
+      summary: Obtener un video por ID
+      description: Retorna un video específico por su ID
+      operationId: getVideoById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del video a obtener
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Video obtenido exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoResponse'
+              example:
+                success: true
+                data:
+                  id: 1
+                  title: Tutorial useState
+                  description: Aprende a usar useState en React
+                  category: react
+                  subCategory: hooks
+                  videoUrl: http://localhost:3000/videos/tutorial_usestate.mp4
+                  thumbnailUrl: http://localhost:3000/imagenes/tutorial_usestate.jpg
+                  createdAt: 2026-05-08T12:00:00.000Z
+        '404':
+          description: Video no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error: Video not found
     delete:
       tags:
         - Videos
@@ -270,10 +418,28 @@ paths:
             type: integer
             example: 1
       responses:
-        '204':
+        '200':
           description: Video eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Video eliminado exitosamente
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Video no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error: Recurso no disponible no se encontro el video para eliminarlo
 
 components:
   schemas:
@@ -349,25 +515,22 @@ components:
           type: string
           description: Descripción del video
           example: Aprende a usar useState en React
-        videoPath:
-          type: string
-          description: Ruta absoluta del archivo de video
-          example: /home/fere/proyect/api-video/assets/backend/videos/tutorial_usestate.mp4
-        thumbnailPath:
-          type: string
-          description: Ruta absoluta de la miniatura
-          example: /home/fere/proyect/api-video/assets/backend/imagenes/tutorial_usestate.jpg
-        categoryId:
-          type: integer
-          description: ID de la subcategoría
-          example: 2
-        parentCategoryId:
-          type: integer
-          nullable: true
-          description: ID de la categoría principal
-          example: 1
         category:
-          $ref: '#/components/schemas/Category'
+          type: string
+          description: Nombre de la categoría principal (padre)
+          example: react
+        subCategory:
+          type: string
+          description: Nombre de la subcategoría
+          example: hooks
+        videoUrl:
+          type: string
+          description: URL pública del archivo de video
+          example: http://localhost:3000/videos/tutorial_usestate.mp4
+        thumbnailUrl:
+          type: string
+          description: URL pública de la miniatura
+          example: http://localhost:3000/imagenes/tutorial_usestate.jpg
         createdAt:
           type: string
           format: date-time
@@ -408,6 +571,16 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+
+    CategoryNotFound:
+      description: Categoría no encontrada
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: Recurso no disponible, no se encontró la categoría
 
     Conflict:
       description: Conflicto de datos (categoría duplicada)
