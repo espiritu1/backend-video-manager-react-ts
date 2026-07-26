@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { type Request, type Response } from "express";
 import { categoryService } from "../services/category.service";
 import { createCategorySchema, categoryIdParamSchema } from "../schemas/category.schema";
 
@@ -26,6 +26,6 @@ export const categoryController = {
   async delete(req: Request, res: Response) {
     const { id } = categoryIdParamSchema.parse(req.params);
     await categoryService.delete(id);
-    res.status(204).send();
+    res.status(200).json({ success: true, message: "Categoría eliminada exitosamente" });
   },
 };

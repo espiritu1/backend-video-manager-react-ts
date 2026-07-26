@@ -41,14 +41,41 @@ export const categoryService = {
   },
 
   async findAll() {
-    return prisma.category.findMany({
-      include: {
-        parent: true,
-        children: true,
-        videos: true,
-      },
-      orderBy: { name: "asc" },
-    });
+    const [allCategories, allVideos] = await Promise.all([
+      prisma.category.findMany({
+        orderBy: { name: "asc" },
+      }),
+      prisma.video.findMany(),
+    ]);
+
+    const videosByCategory = new Map<number, typeof allVideos>();
+    for (const video of allVideos) {
+      const list = videosByCategory.get(video.categoryId) || [];
+      list.push(video);
+      videosByCategory.set(video.categoryId, list);
+    }
+
+    const categoryMap = new Map<number, any>();
+    const roots: any[] = [];
+
+    for (const cat of allCategories) {
+      categoryMap.set(cat.id, {
+        ...cat,
+        children: [],
+        videos: videosByCategory.get(cat.id) || [],
+      });
+    }
+
+    for (const cat of allCategories) {
+      const node = categoryMap.get(cat.id)!;
+      if (cat.parentId) {
+        categoryMap.get(cat.parentId)?.children.push(node);
+      } else {
+        roots.push(node);
+      }
+    }
+
+    return roots;
   },
 
   async delete(id: number) {
@@ -61,7 +88,7 @@ export const categoryService = {
     });
 
     if (!category) {
-      throw createError("Category not found", 404);
+      throw createError("Recurso no disponible, no se encontró la categoría", 404);
     }
 
     if (category.children.length > 0) {

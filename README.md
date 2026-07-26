@@ -103,6 +103,7 @@ Edita el archivo `.env` con tu configuración de PostgreSQL:
 ```env
 DATABASE_URL="postgresql://tu_usuario:tu_password@localhost:5432/api_videos"
 PORT=3000
+HOST=localhost
 ```
 
 ### 5. Sincronizar base de datos
@@ -135,19 +136,23 @@ curl http://localhost:3000/health
 
 ## 📡 Endpoints
 
-### Health Check
+### Health Check y Documentación
 
 | Método | Endpoint | Descripción                               |
 |--------|----------|----------------------------------------   |
 | GET    | `/health`| Verificar que el servidor está corriendo  |
+| GET    | `/openapi.json` | Obtener especificación OpenAPI en JSON |
+| GET    | `/videos/:filename` | Servir archivos de video estáticos |
+| GET    | `/imagenes/:filename` | Servir archivos de imagen estáticos |
 
 ### Categorías
 
-| Método  | Endpoint              | Descripción                 |
-|-------- |-----------------------|-----------------------------|
-| GET     | `/api/categories`     | Listar todas las categorías |
-| POST    | `/api/categories`     | Crear una categoría         |
-| DELETE  | `/api/categories/:id` | Eliminar una categoría      |
+| Método  | Endpoint                        | Descripción                          |
+|-------- |----------------------------------|--------------------------------------|
+| GET     | `/api/categories`               | Listar todas las categorías          |
+| GET     | `/api/categories?parentId=1`    | Listar subcategorías de un padre     |
+| POST    | `/api/categories`               | Crear una categoría o subcategoría   |
+| DELETE  | `/api/categories/:id`           | Eliminar una categoría               |
 
 #### Ejemplo crear categoría principal:
 ```json
@@ -164,6 +169,90 @@ POST /api/categories
   "name": "Hooks",
   "parentId": 1
 }
+```
+
+#### Respuestas al crear categoría
+
+**Éxito (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 4,
+    "name": "react",
+    "parentId": null
+  }
+}
+```
+
+**Error (400) - nombre vacío:**
+```json
+{
+  "success": false,
+  "error": "El nombre no puede estar vacío"
+}
+```
+
+**Error (404) - padre no encontrado:**
+```json
+{
+  "success": false,
+  "error": "Categoría padre no encontrada"
+}
+```
+
+**Error (409) - nombre duplicado:**
+```json
+{
+  "success": false,
+  "error": "La categoría 'react' ya existe"
+}
+```
+
+#### Respuestas al eliminar categoría
+
+**Éxito (200):**
+```json
+{
+  "success": true,
+  "message": "Categoría eliminada exitosamente"
+}
+```
+
+**Error (404) - no existe:**
+```json
+{
+  "success": false,
+  "error": "Recurso no disponible, no se encontró la categoría"
+}
+```
+
+**Error (400) - tiene subcategorías:**
+```json
+{
+  "success": false,
+  "error": "Cannot delete category with subcategories"
+}
+```
+
+**Error (400) - tiene videos:**
+```json
+{
+  "success": false,
+  "error": "Cannot delete category with videos"
+}
+```
+
+### Filtro de categorías por padre
+
+`GET /api/categories?parentId=X` devuelve solo los hijos directos de la categoría con ID X:
+
+```bash
+GET /api/categories?parentId=10
+# Respuesta: [{ "id": 30, "name": "hombre", "parentId": 10 }, { "id": 31, "name": "mujer", "parentId": 10 }]
+
+GET /api/categories?parentId=30
+# Respuesta: [] (vacío si no tiene hijos)
 ```
 
 ### Videos
